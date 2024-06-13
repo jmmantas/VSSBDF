@@ -1,3 +1,11 @@
+
+# VSSBDF:  Variable Stepsize, Semi-implicit, Backward Differentiation Formula Solvers in C++
+**VSSBDF** software includes the C++ implementation of Variable-Stepsize IMEX SBDF methods to solve several stiff IVP-ODEs derived from  Advection-Diffusion-Reaction Models
+
+
+
+## Installation
+
 Before compiling and link the software, you need to install the libraries LIS (https://www.ssisc.org/lis/index.en.html), and openblas (https://www.openblas.net/).
 
 It is necessary to edit Makefile to indicate the path where the LIS library is installed by setting the variable LISROOT which is set by default to "usr/local".
@@ -7,6 +15,8 @@ Once the Makefile has been modified, you have to compile and link  by issuing:
 make
 
 This will generate the executable file "IVP_Solver". To execute the program, you have to issue the executable file with the following  arguments:
+
+## Usage
 
 ./IVP_Solver <problem id.> <conv. order> <num. grid points (N))>  <tf(final time)> <RK stepsize> <init. SBDF stepsize>  <Num. experiments> <init_tolerance>
 
