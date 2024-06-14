@@ -1,6 +1,17 @@
 
 # VSSBDF:  Variable Stepsize, Semi-implicit, Backward Differentiation Formula Solvers in C++
-**VSSBDF** software includes the C++ implementation of Variable-Stepsize IMEX SBDF methods to solve several stiff IVP-ODEs derived from  Advection-Diffusion-Reaction Models
+**VSSBDF** software package includes the C++ implementation of Variable-Stepsize IMEX SBDF methods to solve several stiff IVP-ODEs derived from  Advection-Diffusion-Reaction Models.
+The IVP-ODE  is given by: dy/dt=F(t,y(t)),   y(t_0)=y_0.
+
+### Two possible Types of splitting
+The package allows two different types of additive splitting to be used:
+
+a) **Physical splitting**: It is the usual splitting, where the terms are split based on their physical properties, e.g. diffusion+reaction is treated implicitly while advection is treated explicitly: dy/dt= [Adv(t,y)] + [Diff(t,y) + React(t,y)]  
+
+
+b) **Jacobian Splitting**:  It reflects the numerical properties of the solution. The splitting has not to be provided by the user because it is performed implicitly by the solver.
+A splitting Jacobian of a ODE system is written as:
+dy/dt= [J_F*y(t)]  +  [F(t,y(t))-F_F*y(t)]
 
 
 
