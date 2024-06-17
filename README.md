@@ -1,17 +1,17 @@
 
 # VSSBDF:  Variable Stepsize, Semi-implicit, Backward Differentiation Formula Solvers in C++
-**VSSBDF** software package includes the C++ implementation of Variable-Stepsize IMEX SBDF methods to solve several stiff IVP-ODEs derived from  Advection-Diffusion-Reaction Models.
-The IVP-ODE  is given by: dy/dt=F(t,y(t)),   y(t_0)=y_0.
+**VSSBDF** software package includes the C++ implementation of a family of Variable-Stepsize SBDF methods to solve several stiff IVP-ODEs derived from  Advection-Diffusion-Reaction Models. .
 
-### Two possible Types of splitting
-The package allows two different types of additive splitting to be used:
+The IVP-ODE  is given by: dy/dt=F(t,y(t))=,   y(t_0)=y_0.
 
-a) **Physical splitting**: It is the usual splitting, where the terms are split based on their physical properties, e.g. diffusion+reaction is treated implicitly while advection is treated explicitly: dy/dt= [Adv(t,y)] + [Diff(t,y) + React(t,y)]  
+### Two different types of splitting
+The package allows two different types of additive splitting (to separate the stiff component and the noinstiff component in F(t,y(t)) ) to be used:
+
+a) **Physical splitting**: It is the usual splitting, where the terms are split based on their physical properties, e.g. diffusion+reaction could treated implicitly while advection is treated explicitly: dy/dt= [Adv(t,y)] + [Diff(t,y) + React(t,y)]  
 
 
 b) **Jacobian Splitting**:  It reflects the numerical properties of the solution. The splitting has not to be provided by the user because it is performed implicitly by the solver.
-A splitting Jacobian of a ODE system is written as:
-dy/dt= [J_F*y(t)]  +  [F(t,y(t))-F_F*y(t)]
+A splitting Jacobian of a ODE system is written as:     dy/dt= [J_F*y(t)]  +  [F(t,y(t))-F_F*y(t)]
 
 
 
@@ -21,13 +21,15 @@ Before compiling and link the software, you need to install the libraries LIS (h
 
 It is necessary to edit Makefile to indicate the path where the LIS library is installed by setting the variable LISROOT which is set by default to "usr/local".
 
-Once the Makefile has been modified, you have to compile and link  by issuing:
+Once the Makefile has been modified, you have to compile and link by issuing:
 
 make
 
-This will generate the executable file "IVP_Solver". To execute the program, you have to issue the executable file with the following  arguments:
+This will generate the executable file "IVP_Solver". 
 
 ## Usage
+
+To execute the program, you have to issue the executable file with the following  arguments:
 
 ./IVP_Solver <problem id.> <conv. order> <num. grid points (N))>  <tf(final time)> <RK stepsize> <init. SBDF stepsize>  <Num. experiments> <init_tolerance>
 
@@ -44,7 +46,7 @@ By default all 1D problems use a grid of N points.
 
 ***IVP_ODE-advdiff.h:  it includes the definition of the class IVP_ODE and the implementation of its methods. These methods defines the particularities of the ODEs system (1D Advection-Diffusion problem) including:
   (a) The calculation of Y0 (the initial stage vector).  
-  (b) The function F (for the non-stiff part) and G (for the rigid part).
+  (b) The function F (for the non-stiff part) and G (for the stiff part).
   (c) The function to calculate analytically the Jacobian d and G at (t,Y).
 
 *** IVP_Solver.cpp: Declares an object of the class IVP_ODE to implement the  k-th order Runge-Kutta  method (RK function with k=1,2,3 4) and the  semiimplicit SBDF-order method (SBDF function). The RK function is used to approximate the initial step value using a very small stepsize and  to check the SBDF solution.  In the main function of this file, we run the RK and SBDF-order methods to solve a particular Problem with the parameters (number of grid points, final time, stepsize for each method) provided by the user using the command line.
