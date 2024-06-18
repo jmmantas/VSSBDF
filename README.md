@@ -56,3 +56,18 @@ By default all 1D problems use a grid of N points.
 *** IVP_Solver.cpp: Declares an object of the class IVP_ODE to implement the  k-th order Runge-Kutta  method (RK function with k=1,2,3 4) and the  semiimplicit SBDF-order method (SBDF function). The RK function is used to approximate the initial step value using a very small stepsize and  to check the SBDF solution.  In the main function of this file, we run the RK and SBDF-order methods to solve a particular Problem with the parameters (number of grid points, final time, stepsize for each method) provided by the user using the command line.
 
 ## License
+
+The code in this repository is released under GPLv3, 2024 Jose Miguel Mantas Ruiz (jmmantas@ugr.es) and Raed Ali Mara'Beh (raedmaraabeh@gmail.com).
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
