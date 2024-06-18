@@ -1,10 +1,9 @@
 /*
-This C++ driver program run the experiments associated with a given IVP model and generate the numerical
-errors for both splitting approaches, the execution times, and the solutions at the final simulation times. 
+This C++ driver program run the experiments associated with a given IVP model using a particular VSSBDF method  
+and generate the numerical errors for both splitting approaches, the execution times, and the 
+solutions at the final simulation times. 
 
-Copyright (C) 2024  University of Granada, Spain. 
-Collaborators: Jose Miguel Mantas Ruiz (jmmantas@ugr.es)
-and Raed Ali Mara'Beh (raedmaraabeh@gmail.com)
+Copyright (C) 2024 Jose Miguel Mantas Ruiz (jmmantas@ugr.es) and Raed Ali Mara'Beh (raedmaraabeh@gmail.com).
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
