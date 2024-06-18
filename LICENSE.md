@@ -176,7 +176,7 @@ If you develop a new program, and you want it to be of the greatest possible use
 
 To do so, attach the following notices to the program. It is safest to attach them to the start of each source file to most effectively state the exclusion of warranty; and each file should have at least the "copyright" line and a pointer to where the full notice is found.
 
-VSSBDF:  Software pàckage with Variable Stepsize Semi-implicit Backward Differentiation Formula Solvers in C++ to solve Advection-Diffusion-Reaction Problems.
+VSSBDF:  C++ package with Variable Stepsize Semi-implicit Backward Differentiation Formula (SBDF) Solvers to solve Advection-Diffusion-Reaction Problems.
 
 VSSBDF Copyright (C) 2024 José Miguel Mantas Ruiz and Raed Ali MaraaBeh 
 
