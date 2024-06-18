@@ -1,3 +1,38 @@
+/*
+This is the header file of the C++ class "SBDF_Solver" which implements the VSSBDF solvers with support for
+orders 1 to 4. The solvers apply adaptive time-stepping techniques to optimize the computational
+process where the accuracy is ensured by error checking. The following public functions are highlighted 
+in this class:
+
+1)  "Time_Step": describes the computations necessary to perform a time step of a
+kth-order SBDF method. This function has an argument which is a pointer to a IVP ODE
+object and uses a specific argument to choose between physics-based and Jacobian-based
+splitting approaches.
+
+2)  "Variable_Time_Step" function implements one coarse time step and two fine time
+steps followed by the approximation of the local truncation error.
+
+3)  "Adaptive_dt_SBDF_Integrate0" implements the entire adaptive time-stepping method 
+for a single time step of k-step VSSBDF method.
+
+
+VSSBDF Copyright (C) 2024 Jose Miguel Mantas Ruiz (jmmantas@ugr.es) and Raed Ali Mara'Beh (raedmaraabeh@gmail.com)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
 #ifndef SBDF_SOLVER_H
 #define SBDF_SOLVER_H
 
@@ -185,7 +220,7 @@ public:
   // Function implementing the order 1-4 SBDF Time Integrator
   // splitting  =0 -----> Physical splitting is assumed (Fimp(Y) + Fexp(Y))
   // splitting =1 -----> Jacobian-based splitting is assumed (Jf*Y  + (f(Y)-Jf*Y) )
-  // It assumes a adaptive time step without stability factor
+  // It assumes a adaptive time step without taking into account a stability factor
   //***************************************************
   void Adaptive_dt_SBDF_Integrate1(const double t0, const double tf,
                                    const double h, double** Y_init, 

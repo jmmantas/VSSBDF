@@ -1,3 +1,23 @@
+/*
+This is the implementation of the C++ class "SBDF_Solver" which implements the VSSBDF solvers with support for
+orders 1 to 4. The solvers apply adaptive time-stepping techniques to optimize the computational
+process where the accuracy is ensured by error checking. 
+
+VSSBDF Copyright (C) 2024 Jose Miguel Mantas Ruiz (jmmantas@ugr.es) and Raed Ali Mara'Beh (raedmaraabeh@gmail.com)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include "IVP_ODE.h"
 #include "SBDF_Solver.h"
