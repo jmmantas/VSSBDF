@@ -409,8 +409,8 @@ int main(int argc, char** argv)
     cout << "<<<< SBDF" << order << "...   Time Step h=" << h_imex << " >>>>" << endl;
 
     // Executions of SBDF solver
-    double error[2][2][num_tests], runtime[2][2][num_tests];
-    int n_steps[2][2][num_tests], n_isteps[2][2][num_tests];
+    double error[2][num_tests], runtime[2][num_tests];
+    int n_steps[2][num_tests], n_isteps[2][num_tests];
     double h0 = h_imex;
     time_ns start_SBDF, end_SBDF;
     double tolerance= start_tol;       
@@ -423,46 +423,32 @@ int main(int argc, char** argv)
     for (int j = 0; j <= 1; j++){            
       SBDF_IVP[j]=new SBDF_Solver(order, IVP_list[problem_id], j);
     }
-    //SBDF_Solver SBDF_IVP1 (order, IVP_list[problem_id], 1);
+    
     //******************************************************************************
     // Perform num_tests x 2 experiments using splitting type=0 and splitting type=1
     //******************************************************************************
     for (int i = 0; i < num_tests; i++){   
     //******************************************************************************
         for (int j = 0; j <= 1; j++){   
-            for (int strategy = 0; strategy <= 0; strategy++){   
-                start_SBDF = high_resolution_clock::now();
-                if (strategy==0) 
-                   SBDF_IVP[j]->Adaptive_dt_SBDF_Integrate0(t0, tf, h0, Y_init, Yf_init, Y1_variable,
-                                          tolerance, &(n_steps[strategy][j][i]), &(n_isteps[strategy][j][i]));
-                else 
-                    SBDF_IVP[j]->Adaptive_dt_SBDF_Integrate1(t0, tf, h0, Y_init, Yf_init, Y1_variable,
-                                          tolerance, &(n_steps[strategy][j][i]), &(n_isteps[strategy][j][i]));
-                end_SBDF = high_resolution_clock::now();
-                //SBDF_IVP.Store_result(tf, Y1_variable,error_tolerance);
-                runtime[strategy][j][i] = duration_cast<nanoseconds>(end_SBDF - start_SBDF).count() * 1e-9;
-                cblas_daxpy(neqn, -1.0, Y1_RK, 1, Y1_variable, 1);
-                error[strategy][j][i] = cblas_dnrm2(neqn, Y1_variable, 1)/pow(neqn, 0.5);
-        
-                
-                cout << "TOL=  "<<tolerance<<".....Splitting="<<j
-                             <<"....NSTEPS= "   <<n_steps[strategy][j][i]
-                             <<"......RUNTIME= "<< runtime[strategy][j][i]
-                             <<"......ERROR = " << error[strategy][j][i]<< endl;  
-             
-            }  
-
+            start_SBDF = high_resolution_clock::now();
+            SBDF_IVP[j]->Adaptive_dt_SBDF_Integrate0(t0, tf, h0, Y_init, Yf_init, Y1_variable,
+                                          tolerance, &(n_steps[j][i]), &(n_isteps[j][i]));
+            end_SBDF = high_resolution_clock::now();
+            //SBDF_IVP.Store_result(tf, Y1_variable,error_tolerance);
+            runtime[j][i] = duration_cast<nanoseconds>(end_SBDF - start_SBDF).count() * 1e-9;
+            cblas_daxpy(neqn, -1.0, Y1_RK, 1, Y1_variable, 1);
+            error[j][i] = cblas_dnrm2(neqn, Y1_variable, 1)/pow(neqn, 0.5);
+            cout << "TOL=  "<<tolerance<<".....Splitting="<<j
+                             <<"....NSTEPS= "   <<n_steps[j][i]
+                             <<"......RUNTIME= "<< runtime[j][i]
+                             <<"......ERROR = " << error[j][i]<< endl;  
             if (j == 0) {
-                file1 << runtime[0][j][i] << endl;
-                file2 << error[0][j][i] << endl;
-              //  file5 << runtime[1][j][i] << endl;
-               // file6 << error[1][j][i] << endl;
+                file1 << runtime[j][i] << endl;
+                file2 << error[j][i] << endl;
             }
             else {
-                file3 << runtime[0][j][i] << endl;
-                file4 << error[0][j][i] << endl;
-                //file7 << runtime[1][j][i] << endl;
-                //file8 << error[1][j][i] << endl;
+                file3 << runtime[j][i] << endl;
+                file4 << error[j][i] << endl;
             }
         }
         tolerance=tolerance/10;
@@ -472,10 +458,6 @@ int main(int argc, char** argv)
     file2.close();
     file3.close();
     file4.close();
-   // file5.close();
-    //file6.close();
-    //file7.close();
-    //file8.close();
     cout << endl << endl;
     cout << IVP_list[problem_id]->get_name()<<" with Neqn = "
              <<neqn<<"......VSSSBDF"<<order<<" .....  ";
@@ -484,20 +466,17 @@ int main(int argc, char** argv)
     }     
     cout<<endl<<endl;
     for (int i = 0; i < num_tests; i++){ 
-        cout << endl<<"***** TOL=" <<setw(4) <<start_tol*pow(1.0e-1,i)<<"******"<<endl;
-        for (int strategy = 0; strategy <= 0; strategy++){ 
-            cout << "STRAT. "<< strategy<<"...";
-            for (int splitting = 0; splitting <=1; splitting++){
-                cout<<"ERR["<<splitting<<"]("<<n_steps[strategy][splitting][i]<<"," 
-                 <<n_isteps[strategy][splitting][i]<<")= " 
-                 << setw(4)<< error[strategy][splitting][i];
-                cout <<"..TIME["<<splitting<<"]= "<<  setw(4)<<runtime[strategy][splitting][i];
-                if (splitting==0) 
-                    cout<<"-----";
-                else 
-                    cout<<" ---->  ERR-RAT= "<<(error[strategy][1][i])*100/error[strategy][0][i]<<"%  "
-                                      <<"TIME-RAT= "<<(runtime[strategy][1][i])*100/runtime[strategy][0][i]<<"%"<<endl;         
-            }   
+        cout << endl<<"***** TOL=" <<setw(4) <<start_tol*pow(1.0e-1,i)<<"******"<<endl; 
+        for (int splitting = 0; splitting <=1; splitting++){
+            cout<<"ERR["<<splitting<<"]("<<n_steps[splitting][i]<<"," 
+                 <<n_isteps[splitting][i]<<")= " 
+                 << setw(4)<< error[splitting][i];
+            cout <<"..TIME["<<splitting<<"]= "<<  setw(4)<<runtime[splitting][i];
+            if (splitting==0) 
+                cout<<"-----";
+            else 
+            cout<<" ---->  ERR-RAT= "<<(error[1][i])*100/error[0][i]<<"%  "
+                                      <<"TIME-RAT= "<<(runtime[1][i])*100/runtime[0][i]<<"%"<<endl;         
         } 
     }
 
