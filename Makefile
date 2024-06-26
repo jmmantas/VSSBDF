@@ -22,7 +22,7 @@ CCLINKLIBS = -L$(LISROOT)/lib  -llis -lopenblas
 CC=g++
 
 # General compiler flags:
-C_FLAGS= -I. -I$(LISROOT)/include/   -Wall  -O3 -m64 -ffast-math  -fomit-frame-pointer 
+C_FLAGS= -I. -I$(LISROOT)/include/   -Wall  -O3 -m64 -ffast-math -fomit-frame-pointer -fopenmp
 
 
 all: ${SRC}/$(OBJ).cpp  ${ALL_IVPs} ${SBDF_Solver}.o  

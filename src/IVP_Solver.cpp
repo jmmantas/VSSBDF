@@ -19,6 +19,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include  <omp.h>
 #include "IVP_ODE_advdiff1d.h"
 #include "IVP_ODE_combustion.h"
 #include "IVP_ODE_brusselator.h"
@@ -263,10 +264,13 @@ void Free_vectors(const int order, double **Y_init, double ** Yf_init,
 int main(int argc, char** argv)
 //***************************************************
 {
-
-    //const double EPSTOL=1.0e-12;
+    
     // Initializa LIS environment
     lis_initialize(&argc, &argv);
+
+    
+    
+    // Number of arguments   
     const int num_args=9;
     // Check the number of parameters
     if (argc < num_args) {
@@ -296,6 +300,16 @@ int main(int argc, char** argv)
     double h_imex = atof(argv[6]); //Time integration stepsize for SBDF method
     const int num_tests=atoi(argv[7]); // Number of experiments
     double start_tol = atof(argv[8]); //Tolerance for the first experiment
+
+    /*
+    // Get the number of processors available
+    const int num_procs = omp_get_num_procs();
+    cout<<"Number of processors= "<<num_procs<<endl;
+    // Set the number of OpenMP threads to the processor count
+    omp_set_num_threads (num_procs);
+    // Set the number of OpenBLAS threads to the processor count
+    openblas_set_num_threads(num_procs);
+    */
 
 
     // Declaration of the C++ objects representing 
