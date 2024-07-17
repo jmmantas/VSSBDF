@@ -1,6 +1,7 @@
 LISROOT     = usr/local
 SRC         = src
-DIR_IVP     = ${SRC}/IVPs
+INC         = include
+DIR_IVP     = ${INC}/IVPs
 DIR_VSBF    = ${SRC}/VSBDF
 OBJ         = IVP_Solver
 SBDF_Solver = SBDF_Solver
@@ -25,8 +26,8 @@ CC=g++
 C_FLAGS= -I. -I$(LISROOT)/include/   -Wall  -O3 -m64 -ffast-math -fomit-frame-pointer -fopenmp
 
 
-all: ${SRC}/$(OBJ).cpp  ${ALL_IVPs} ${SBDF_Solver}.o  
-	$(CC)  -I${DIR_IVP} -I${DIR_VSBF} ${SRC}/$(OBJ).cpp ${SBDF_Solver}.o $(C_FLAGS) -o $(OBJ) $(CCLINKLIBS)    
+all: ${SRC}/$(OBJ).cpp  ${SBDF_Solver}.o ${ALL_IVPs}   
+	$(CC)  -I${DIR_IVP} -I${INC} ${SRC}/$(OBJ).cpp ${SBDF_Solver}.o $(C_FLAGS) -o $(OBJ) $(CCLINKLIBS)    
 
 .PHONY: clean
 
@@ -36,6 +37,6 @@ cleanout:
 	rm  *.txt 
 
 	
-${SBDF_Solver}.o: ${DIR_VSBF}/${SBDF_Solver}.cpp   ${DIR_VSBF}/${SBDF_Solver}.h
-	$(CC)  -I${DIR_IVP} -I${DIR_VSBF} ${DIR_VSBF}/${SBDF_Solver}.cpp  $(C_FLAGS) -c     
+${SBDF_Solver}.o: ${DIR_VSBF}/${SBDF_Solver}.cpp   ${INC}/${SBDF_Solver}.h
+	$(CC)  -I${DIR_IVP} -I${INC} ${DIR_VSBF}/${SBDF_Solver}.cpp  $(C_FLAGS) -c     
  
