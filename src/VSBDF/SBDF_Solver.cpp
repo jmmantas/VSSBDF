@@ -110,7 +110,7 @@ void SBDF_Solver::compare_matrix_csr(LIS_MATRIX A1, LIS_MATRIX A2)
 
 
   //***************************************************
-  // Init every CSR Sparse LIS matrix
+  // Init CSR Sparse LIS matrices As, Jf, Jf2 and As2
   void SBDF_Solver::init_matrices() {
     init_CSR_LIS_matrix(splitting_type, &As);
     init_CSR_LIS_matrix(splitting_type, &Jf); 
@@ -702,25 +702,30 @@ void SBDF_Solver::Const_dt_SBDF_Integrate(const double t0, const double tf,
 }
 
 
-//***************************************************
-// Coarse and Fine Time steps using Variable SBDF scheme
-//***************************************************
+//********************************************************************************************
+// Compute Coarse and Fine Time steps using Variable SBDF scheme as well as the LTE
+//********************************************************************************************
 void SBDF_Solver::Variable_Time_Step(const double t, double * h_vector, 
                                      double * h_vector_half, double * h_vector_half2, double ** Y, 
                                      double ** Yf, double * Y1, double * LTE, double *epsilon_c)
 { const bool  variable_tstep=true;
-  //cout<<"COARSE STEP: "<<".......h="<<h_vector[idx]<<  "      t="<<t<<endl;
+
+  // COARSE STEP
   Time_Step(t, h_vector, Y, Y1, variable_tstep);
-  //cout<<"********************************************************************"<<endl<<endl;
+
   h_vector_half[idx]=h_vector[idx]/2.0;  
   for (int i=0;i<idx;i++) {
     h_vector_half2[i]=h_vector_half[i+1];
   }
   h_vector_half2[idx]=h_vector[idx]/2.0;
-  //cout<<"FINE STEP 1: "<<".......h="<<h_vector_half[0]<<  "      t="<<t<<endl;
+
+  // FINE STEP 1
   Time_Step(t,h_vector_half, Yf, Yf[order], variable_tstep);
-  //cout<<"FINE STEP 2: "<<".......h="<<h_vector_half2[0]<<  "      t="<<t+h_vector_half[idx]<<endl;
+
+  //FINE STEP 2
   Time_Step(t+h_vector_half[idx], h_vector_half2, &(Yf[1]), Yf[order+1], variable_tstep);
+  
+  // Computation of the LTE vector and the scalar error
   *epsilon_c=compute_LTE(h_vector, Y1, Yf[order+1],LTE);
 }
 
@@ -736,21 +741,20 @@ void SBDF_Solver::Adaptive_dt_SBDF_Integrate0(const double t0, const double tf,
     const double h, double** Y_init, double ** Yf_init, double* Y1, 
     const double tol, int *nsteps, int * n_isteps)  {        
 //***************************************************
-    const double  p_inv=1.0/(order+1);
-    const double range = tol/3;
-    const double alpha=0.8;
-    const double eta_min = 0.2;
-   // double eta_max = 1.1;
-    //const double eta_min= 0.0;
-   // double eta_max= stability_factor[idx];
-    double eta_max = 5;
+    // Several constants used in the adaptive time stepping
+    const double  p_inv=1.0/(order+1), range = tol/3, 
+                  alpha=0.8, eta_min = 0.2, eta_max = 5,
+                  EPSTOL=1.0e-20;
     const unsigned i_max = 5;
-    // const double h_min=  1.0e-4;
-    // const double h_max= 1.0;
 
-    const double EPSTOL=1.0e-20;
+    // index:  indicates the position of the last solution vector (in the last integration step)
+    // in the intermediate step vectors Y and Yf 
+    const int idx=order-1;
+
+    //neqn: number of ODEs
     const int neqn = IVP->get_num_ODEs();
-    // Initialize intermediate stage vectors Y, Tf and the LTE vector
+
+    // Initialize intermediate step vectors Y, Yf and the LTE vector
     double *Y[order], *Yf[order+2];
     double *LTE=new double[neqn];
     for (unsigned int i = 0; i < (order+2); i++) {
@@ -761,98 +765,128 @@ void SBDF_Solver::Adaptive_dt_SBDF_Integrate0(const double t0, const double tf,
         cblas_dcopy(neqn, Y_init[i], 1, Y[i], 1);
         cblas_dcopy(neqn, Yf_init[i], 1, Yf[i], 1);    
     }
+    // Initialize next time instant t in terms of the initial time t0, 
+    // the initial stepsize  h  and the order (idx=order-1) of the method
+    double t = t0 + idx * h;
 
-    double t = t0;  
-    const int idx=order-1;
-    t = t + idx * h;
-    double h_vector[4]={h,h,h,h};
-    double h_vector_half[4]={h/2,h/2,h/2,h/2};
-    double h_vector_half2[4];
- 
+    // Vectors of intermediate time steps h_vector, h_vector_half and h_vector_half2  
+    double h_vector[4]={h,h,h,h}; // for coarse grain approximation
+    double h_vector_half[4]={h/2,h/2,h/2,h/2}; // for the 1st step in the fine grain approximation
+    double h_vector_half2[4];// for the 2nd step in the fine grain approximation
+    
+    // Init CSR Sparse LIS matrices: As, Jf, Jf2 and As2 before compute them
     init_matrices();
 
+    // Counter for the number of time steps
     int N_steps=0;
+    // Boolean to indicate the end of the time loop  
     bool end=false;
+    // Total number of inner iterations
     unsigned total_isteps=0;
 
     //*********  TIME LOOP  ****************
     while (!end) {
     //**************************************
-      const double distance = tf - t;  
-      bool found_h_now=false, last_step=false, stab_factor_applied=false;
+      // Distance to the final time
+      const double distance = tf - t;
+      // accepted: indicates if the current time step is accepted
+      bool accepted=false;
+      // last_step: indicates if the current time step is probably the last one
+      bool last_step=false;
+      // imposed_stability: indicates if the stability factor has been applied in the current time step
+      bool imposed_stability=false;
       // Local trucation error epsilon_c
       double epsilon_c;
       // number of iteration for a single adaptive time step
       unsigned i_step=0;
+      // factor: value used to update the time step by multiplying the current time step
       double factor;   
 
-      // INNER LOOP OF A TIME STEP
-      while (! found_h_now)  {
+      // INNER LOOP FOR A TIME STEP
+      while (! accepted)  {
     
-        // If the hnew is greater than distance=tf-t, then new h=tf-t and last step is possible 
+        // If the current step size is greater than tf-t, 
+        // then new step size= tf-t and it is probably the last step 
         if (h_vector[idx]>distance) {
           h_vector[idx]=distance; 
           last_step=true;
           //cout<<"** T= "<<t<<"   ***********COMPUTING FINAL DT="
           //            <<h_vector[idx]<<"  *****  h_const= "<<h<<endl<<flush;        
-        }         
-       
+        } 
+
+        // Compute a coarse and fine time steps in Y1, using the VSSBDF scheme
+        // and the error estimate epsilon_c
         Variable_Time_Step(t, h_vector, h_vector_half, h_vector_half2, Y, Yf, Y1, LTE, &epsilon_c);
        
-        found_h_now=(fabs(epsilon_c-tol)<=range) || (i_step>i_max &&  epsilon_c <= tol+range);
-        //found_h_now = (fabs(epsilon_c - tol) <= range);
+        // Check if the current step size is accepted
+        accepted=(fabs(epsilon_c-tol)<=range);
 
-        if (stab_factor_applied){
-          found_h_now=(found_h_now || epsilon_c <= tol+range);
-          stab_factor_applied=false;
-       }
-        if (last_step) found_h_now=(found_h_now || epsilon_c <= tol+range);
 
-        if (!found_h_now) {
+        // If the stability factor has been applied 
+        // or it is the last time step, 
+        // or the number of inner iterations is greater than i_max
+        // then the current step size is accepted when the error is sufficiently small  
+        if ( i_step>i_max || imposed_stability || last_step){
+          accepted=(epsilon_c <= (tol+range)); // Weaker acceptance condition in special cases
+          imposed_stability=false;
+        }
+
+        // when the step size is not accepted and should be updated
+        if (!accepted) {      
+          // If the number of inner iterations gets its limit 
+          // and the error is greater than the tolerance
+          // then update the factor without any restriction
           if (i_step>i_max && epsilon_c > tol) {
-            //i_step=0;factor=0.2;
-            factor=alpha*pow(tol/epsilon_c,p_inv);
+            // Use more agressive update when we are stuck
+            factor=alpha*pow(tol/epsilon_c,p_inv); 
           }
           else {
-            factor=min(max(alpha*pow(tol/epsilon_c,p_inv),eta_min  ),eta_max);
-            
+            // Update the factor using the known formula
+            factor=min(max(alpha*pow(tol/epsilon_c,p_inv),eta_min  ),eta_max);  
           }  
+          // Update the step size using the current factor
           h_vector[idx]*=factor;  
 
-         //If hnew/hold is greater than the stability limit, update hnew 
-        if (order>1  && (h_vector[idx]/h_vector[idx-1]>= stability_factor[idx])){
-            stab_factor_applied=true;
-            h_vector[idx]=h_vector[idx-1]*stability_factor[idx];
-               
-       }
+          // If hnew/hold is greater than the stability limit, update the step size 
+          if (order>1  && ( (h_vector[idx]/h_vector[idx-1])>= stability_factor[idx])){
+            imposed_stability=true;
+            h_vector[idx]=h_vector[idx-1]*stability_factor[idx];       
+          }
         }
-                 
+        // Update the number of inner iterations for this time step         
         i_step++;     
-      }   // END OF INNER LOOP OF A TIME STEP
+      } // END OF INNER LOOP OF A TIME STEP
+
+
+      // Update the total number of inner iterations
       total_isteps+=i_step;
-      // Update t using the old time step stored in h_vector[idx]
+      // Update t using the old step size stored in h_vector[idx]
       t+=h_vector[idx];
+      // Update the number of time steps
       N_steps++;
+      // Check if the end of the time loop is reached
       end=(fabs(tf-t)<EPSTOL); 
 
-      // Richardson Extrapolation using LTE:   Y1=Y1-LTE
+      // Update Y1 using Richardson Extrapolation using LTE: Y1=Y1-LTE  
       cblas_daxpy(neqn, -1.0, LTE, 1, Y1, 1);
 
-      if (!end) {
-        // Update intermediate vectors and stepsizes
+      if (!end) { // If the end of the time loop is not reached
+        // Update intermediate vectors and stepsizes for the next time step
         Update_adaptive_intermediate_vectors(h_vector_half, h_vector_half2, h_vector, Yf, Y, Y1);
       }
-      
-      
     } // End of time stepping
 
 
-    cout << endl << "FINAL TIME= " << t << "    tf-t= "<<tf-t<<
-    "   Actual Number of time steps=" << N_steps <<
-    "   TOTAL COMPUTED TIME STEPS= "<<3*total_isteps<< endl;
+    //cout << endl << "FINAL TIME= " << t << "    tf-t= "<<tf-t<<
+    //"   Actual Number of time steps=" << N_steps <<
+    //"   TOTAL COMPUTED TIME STEPS= "<<3*total_isteps<< endl;
+
+    // Set the final values for the output parameters 
+    // denoting the number of time steps and inner iterations 
     *nsteps=N_steps; 
     *n_isteps=total_isteps; 
 
+    // Free memory allocated for intermediate vectors Y, Yf and LTE
     for (unsigned i = 0; i < order; i++)
         delete[] Y[i];
     for (unsigned i = 0; i < (order+2); i++)
@@ -890,6 +924,7 @@ void SBDF_Solver::Adaptive_dt_SBDF_Integrate1(const double t0, const double tf,
     cblas_dcopy(neqn, Y_init[i], 1, Y[i], 1);
     cblas_dcopy(neqn, Yf_init[i], 1, Yf[i], 1);    
   }
+
   // Init the time counter
   double t = t0;  
   const int idx=order-1;

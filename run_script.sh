@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Clean up and compile the program
+# Clean up and compile the program nice
 make clean
 make
 
