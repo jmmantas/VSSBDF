@@ -1,6 +1,6 @@
 /*
 This C++ driver program run the experiments associated with a given IVP model using a particular VSSBDF method  
-and generate the numerical errors for both splitting approaches, the execution times, and the 
+and with the corresponding SBDF method and generate the numerical errors, the execution times, and the 
 solutions at the final simulation times. 
 
 VSSBDF Copyright (C) 2024 Jose Miguel Mantas Ruiz (jmmantas@ugr.es) and Raed Ali Mara'Beh (raedmaraabeh@gmail.com)
@@ -204,8 +204,7 @@ void RK(const int nstages, IVP_ODE* IVP, const double t0,
 
 
 //**************************************************************************
-// Initialize  intermediate vectors (Y_init and Yf_init) using 4th order Runge-Kutta 
-// to start the multistep integration
+// Initialize  intermediate vectors starting the multistep integration
 //**************************************************************************
 void Init_Vectors(const int order, const int neqn,  const double t0, 
                   const double h,  IVP_ODE* IVP, double ** Y_init, double ** Yf_init) 
@@ -216,13 +215,13 @@ void Init_Vectors(const int order, const int neqn,  const double t0,
     // Approximation of the intermediate step initial values 
     // using RK4 and very small stepsize
 	const double h_RK=1.0e-8;
-    // Initialize initial condition vectors (Y_init[...]) for coarse time integration
+    // Initialize initial condition vectors for coarse time integration
     double t2=t0;           
     for (int i = 1; i < order; i++){  
         RK(RK_order, IVP, t2, t2+h, h_RK, Y_init[i-1], Y_init[i]);
         t2+=h;
     } 
-    // Set up initial condition vectors (Yf_init[...]) for 
+    // Set up initial condition vectors for 
     // fine time integration (half of the time step size)
     const double h_over2=h/2;
     if (order==2) {
@@ -244,13 +243,12 @@ void Init_Vectors(const int order, const int neqn,  const double t0,
 }
 
 //**************************************************************************
-// Free auxiliary vectors in dynamic memory:
-// Y_init(orden*neqn), Yf_init((orden*neqn+2), 
-// Y1_variable(neqn) and Y1_RK(neqn)	
+// Free vectors in dynamic memory	
 //**************************************************************************
 void Free_vectors(const int order, double **Y_init, double ** Yf_init,
                    double * Y1_RK,double *Y1_variable)
 {
+
     for (int i = 0; i < order; i++) 
         delete[] Y_init[i];
     for (int i = 0; i < (order+2); i++) 
@@ -266,7 +264,8 @@ void Free_vectors(const int order, double **Y_init, double ** Yf_init,
 int main(int argc, char** argv)
 //***************************************************
 {
-      // Initializa LIS environment
+    
+    // Initializa LIS environment
     lis_initialize(&argc, &argv);
     
     // Order of the Explicit Runge-Kutta Solver 
@@ -305,17 +304,7 @@ int main(int argc, char** argv)
     const int num_tests=atoi(argv[7]); // Number of experiments
     double start_tol = atof(argv[8]); //Tolerance for the first experiment
 
-    /*
-    // Get the number of processors available
-    const int num_procs = omp_get_num_procs();
-    cout<<"Number of processors= "<<num_procs<<endl;
-    // Set the number of OpenMP threads to the processor count
-    omp_set_num_threads (num_procs);
-    // Set the number of OpenBLAS threads to the processor count
-    openblas_set_num_threads(num_procs);
-    */
-
-
+    
     // Declaration of the C++ objects representing 
     // the IVP-ODE problems to be solved 
     IVP_ODE_advdiff1d   IVP_advdiff1d(Num_points);
@@ -346,17 +335,13 @@ int main(int argc, char** argv)
     ///////////////////////
 
     /// This part to save some results in txt file
-
     ofstream file1("TTime_P_S0_order" + to_string(order) + ".txt", ios_base::app);
     ofstream file2("Error_P_S0_order" + to_string(order) + ".txt");
     ofstream file3("TTime_J_S0_order" + to_string(order) + ".txt", ios_base::app);
     ofstream file4("Error_J_S0_order" + to_string(order) + ".txt");
 
 
-    //ofstream file5("Time_P_S1_order" + to_string(order) + ".txt", ios_base::app);
-    //ofstream file6("Error_P_S1_order" + to_string(order) + ".txt");
-    //ofstream file7("Time_J_S1_order" + to_string(order) + ".txt", ios_base::app);
-    //ofstream file8("Error_J_S1_order" + to_string(order) + ".txt");
+   
     // Check if the file streams are open before attempting to write to files
     if (!file1.is_open() || !file2.is_open() || !file3.is_open() || !file4.is_open()) {
         std::cerr << "Error: One or more files could not be opened." << std::endl;
@@ -389,11 +374,15 @@ int main(int argc, char** argv)
     }
         
     //Declare vector Y1_variable to store the numerical approximation 
-    // to the solution	 
+    // to the solution using adaptive stepsize 	 
     double* Y1_variable = new double[neqn];
 
+    //Declare vector Y1_fixed to store the numerical approximation 
+    // to the solution using constant stepsize 	 
+    double* Y1_constant = new double[neqn];
+
     //Declare vector Y1 to store the numerical approximation 
-    // to the solution with RK solver	 
+    // to the solution with the RK solver	 
     double* Y1_RK = new double[neqn];
 
     cout.precision(3);
@@ -426,9 +415,9 @@ int main(int argc, char** argv)
     // Numerical solution with the semiimplicit SBDF-order Method
     cout << "<<<< SBDF" << order << "...   Time Step h=" << h_imex << " >>>>" << endl;
 
-    // Executions of SBDF solver
-    double error[2][num_tests], runtime[2][num_tests];
-    int n_steps[2][num_tests], n_isteps[2][num_tests];
+    // Executions of SBDF solvers
+    double error[num_tests], runtime[num_tests];
+    int n_steps[num_tests], n_isteps[num_tests];
     double h0 = h_imex;
     time_ns start_SBDF, end_SBDF;
     double tolerance= start_tol;       
@@ -436,31 +425,52 @@ int main(int argc, char** argv)
     // using RK4 and very small stepsize
     Init_Vectors(order,neqn,  t0, h0,  IVP_list[problem_id], Y_init, Yf_init);   
     
-    // Init SBDF solvers for both type of splittings (0 and 1)
-    SBDF_Solver * SBDF_IVP[2];
-    for (int j = 0; j <= 1; j++){            
-      SBDF_IVP[j]=new SBDF_Solver(order, IVP_list[problem_id], j);
-    }
+    const int splitting_type=1;
+    // Init SBDF solver for splitting_type 
+    SBDF_Solver * SBDF_IVP=new SBDF_Solver(order, IVP_list[problem_id], splitting_type);
     
     //******************************************************************************
-    // Perform num_tests x 2 experiments using splitting type=0 and splitting type=1
+    // Perform num_tests x 2 experiments using splitting type=0 and with constant time_step
     //******************************************************************************
     for (int i = 0; i < num_tests; i++){   
     //******************************************************************************
-        for (int j = 0; j <= 1; j++){   
+             const double h_const=pow(tolerance,1.0/order);
+
+            // ADAPTIVE STEPSIZE INTEGRATION 
             start_SBDF = high_resolution_clock::now();
-            SBDF_IVP[j]->Adaptive_dt_SBDF_Integrate0(t0, tf, h0, Y_init, Yf_init, Y1_variable,
-                                          tolerance, &(n_steps[j][i]), &(n_isteps[j][i]));
+
+
+            SBDF_IVP->Adaptive_dt_SBDF_Integrate0(t0, tf, h_const, Y_init, Yf_init, Y1_variable,
+                                          tolerance, &(n_steps[i]), &(n_isteps[i]));
+
+
             end_SBDF = high_resolution_clock::now();
-            //SBDF_IVP.Store_result(tf, Y1_variable,error_tolerance);
-            runtime[j][i] = duration_cast<nanoseconds>(end_SBDF - start_SBDF).count() * 1e-9;
+
+            runtime[i] = duration_cast<nanoseconds>(end_SBDF - start_SBDF).count() * 1e-9;
             cblas_daxpy(neqn, -1.0, Y1_RK, 1, Y1_variable, 1);
-            error[j][i] = cblas_dnrm2(neqn, Y1_variable, 1)/pow(neqn, 0.5);
-            cout << "TOL=  "<<tolerance<<".....Splitting="<<j
-                             <<"....NSTEPS= "   <<n_steps[j][i]
-                             <<"......RUNTIME= "<< runtime[j][i]
-                             <<"......ERROR = " << error[j][i]<< endl;  
-            if (j == 0) {
+            error[i] = cblas_dnrm2(neqn, Y1_variable, 1)/pow(neqn, 0.5);
+            cout << "VARIABLE ...  TOL=  "<<tolerance<<"..... Splitting " <<splitting_type <<"....NSTEPS= "   <<n_steps[i]
+                             <<"......RUNTIME= "<< runtime[i]
+                             <<"......ERROR = " << error[i]<< endl;  
+
+
+
+            // CONSTANT STEPSIZE INTEGRATION
+           
+            start_SBDF = high_resolution_clock::now();
+
+            SBDF_IVP->Const_dt_SBDF_Integrate(t0, tf, h_const, Y_init, Y1_constant);
+
+            end_SBDF = high_resolution_clock::now();
+
+            runtime[i] = duration_cast<nanoseconds>(end_SBDF - start_SBDF).count() * 1e-9;
+            cblas_daxpy(neqn, -1.0, Y1_RK, 1, Y1_constant, 1);
+            error[i] = cblas_dnrm2(neqn, Y1_constant, 1)/pow(neqn, 0.5);
+            cout << "CONSTANT...."<< "H=  "<<h_const<<  "                                    CONST_RUNTIME= "<< runtime[i] <<"...CONST_ERROR = " << error[i]<< endl;  
+
+
+
+ /*           if (j == 0) {
                 file1 << runtime[j][i] << endl;
                 file2 << error[j][i] << endl;
             }
@@ -468,7 +478,7 @@ int main(int argc, char** argv)
                 file3 << runtime[j][i] << endl;
                 file4 << error[j][i] << endl;
             }
-        }
+        }*/
         tolerance=tolerance/10;
       
     }
@@ -485,24 +495,16 @@ int main(int argc, char** argv)
     cout<<endl<<endl;
     for (int i = 0; i < num_tests; i++){ 
         cout << endl<<"***** TOL=" <<setw(4) <<start_tol*pow(1.0e-1,i)<<"******"<<endl; 
-        for (int splitting = 0; splitting <=1; splitting++){
-            cout<<"ERR["<<splitting<<"]("<<n_steps[splitting][i]<<"," 
-                 <<n_isteps[splitting][i]<<")= " 
-                 << setw(4)<< error[splitting][i];
-            cout <<"..TIME["<<splitting<<"]= "<<  setw(4)<<runtime[splitting][i];
-            if (splitting==0) 
-                cout<<"-----";
-            else 
-            cout<<" ---->  ERR-RAT= "<<(error[1][i])*100/error[0][i]<<"%  "
-                                      <<"TIME-RAT= "<<(runtime[1][i])*100/runtime[0][i]<<"%"<<endl;         
-        } 
+        cout<<"ERR("<<n_steps[i]<<"," 
+                 <<n_isteps[i]<<")= " 
+                 << setw(4)<< error[i];
+        cout <<"..TIME= "<<  setw(4)<<runtime[i];   
     }
+    cout<<endl;
 
     // Free vectors in dynamic memory	
     Free_vectors(order, Y_init, Yf_init,Y1_RK,Y1_variable);
-    for (int j = 0; j <= 1; j++){            
-      delete SBDF_IVP[j];
-    }
+    delete SBDF_IVP;
 
     //Finalize LIS environment 
     lis_finalize();

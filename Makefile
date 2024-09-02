@@ -3,8 +3,10 @@ SRC         = src
 INC         = include
 DIR_IVP     = ${INC}/IVPs
 DIR_VSBF    = ${SRC}/VSBDF
-OBJ         = IVP_Solver
+OBJ_SOLVER         = IVP_Solver
 SBDF_Solver = SBDF_Solver
+COMP_TEST = Comparison_Test
+
 
 IVP=IVP_ODE
 IVP1=IVP_ODE_combustion
@@ -26,17 +28,20 @@ CC=g++
 C_FLAGS= -I. -I$(LISROOT)/include/   -Wall  -O3 -m64 -ffast-math -fomit-frame-pointer -fopenmp
 
 
-all: ${SRC}/$(OBJ).cpp  ${SBDF_Solver}.o ${ALL_IVPs}   
-	$(CC)  -I${DIR_IVP} -I${INC} ${SRC}/$(OBJ).cpp ${SBDF_Solver}.o $(C_FLAGS) -o $(OBJ) $(CCLINKLIBS)    
+all: ${SRC}/$(OBJ_SOLVER).cpp ${SRC}/$(COMP_TEST).cpp   ${SBDF_Solver}.o ${ALL_IVPs}   
+	$(CC)  -I${DIR_IVP} -I${INC} ${SRC}/$(OBJ_SOLVER).cpp ${SBDF_Solver}.o $(C_FLAGS) -o $(OBJ_SOLVER) $(CCLINKLIBS) 
+	$(CC)  -I${DIR_IVP} -I${INC} ${SRC}/$(COMP_TEST).cpp ${SBDF_Solver}.o $(C_FLAGS) -o $(COMP_TEST) $(CCLINKLIBS)    
 
 .PHONY: clean
 
 clean:
-	rm  $(OBJ) ${SBDF_Solver}.o 
+	rm  $(OBJ_Solver) ${SBDF_Solver}.o 
 cleanout:
 	rm  *.txt 
 
 	
+	
 ${SBDF_Solver}.o: ${DIR_VSBF}/${SBDF_Solver}.cpp   ${INC}/${SBDF_Solver}.h
 	$(CC)  -I${DIR_IVP} -I${INC} ${DIR_VSBF}/${SBDF_Solver}.cpp  $(C_FLAGS) -c     
  
+

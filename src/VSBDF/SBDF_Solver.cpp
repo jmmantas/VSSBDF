@@ -81,11 +81,12 @@ void SBDF_Solver::compare_matrix_csr(LIS_MATRIX A1, LIS_MATRIX A2)
   //**************************************************************************
   void  SBDF_Solver::Add_aFY(const double t, const double a, double* Y) {   
     double* DY = new double[neqn];
+    // Physical splitting
     if (splitting_type==0) {
       IVP->F(t, Y, DY);
       cblas_daxpy(neqn, a, DY, 1, R, 1);
     }
-    else {
+    else { // Jacobian splitting
       double DY2[neqn];
       IVP->feval(t, Y, DY);
       IVP->Jacobian_based_G(t, Y, DY2, Jf);
@@ -166,7 +167,7 @@ void  SBDF_Solver::compute_RHS_SBDF(const double t, const double h, const double
 //**************************************************************************
 
 //**************************************************************************
-// Compute the constant term (in a time step) of Right Hand Side at each Newton Iteration
+// Compute the constant term (in a time step) of Right Hand Side (R) at each Newton Iteration
 //**************************************************************************
 void  SBDF_Solver::compute_RHS0_SBDF(const double t, const double * h_vector, double** Y)
 {
@@ -179,12 +180,15 @@ void  SBDF_Solver::compute_RHS0_SBDF(const double t, const double * h_vector, do
 
     //R=Y[0] 
     cblas_dcopy(neqn, Y[0], 1, R, 1);
+
     if (order==1){
       // SBDF1: Compute R(Y1)=h*F(t,Y[0])+Y[0]
       Add_aFY(t, h, Y[0]);
     }
     else {
+      // R=alpha_{-1}*Y[0]
       cblas_dscal(neqn, coef_Y[idx][0],      R, 1);
+
       for (int i = 1; i <= idx; i++) {
         cblas_daxpy(neqn, coef_Y[idx][i],      Y[i], 1, R, 1);
       }
@@ -681,8 +685,6 @@ void SBDF_Solver::Const_dt_SBDF_Integrate(const double t0, const double tf,
       if (distance<h) {    
         h_now=distance;
         h_vector[idx]=h_now;
-        cout<<"** T= "<<t<<"   ***********COMPUTING FINAL DT="
-                      <<h_now<<"  *****  h_const= "<<h<<endl;                               
         variable_tstep=true;                                 
       } 
  
@@ -693,9 +695,6 @@ void SBDF_Solver::Const_dt_SBDF_Integrate(const double t0, const double tf,
       N_steps++;
       if (fabs(tf-t)<EPSTOL) {end=true;}
     } // End of time stepping
-
-    cout << endl << "FINAL TIME= " << t 
-         << "  Number of constant time steps=" << N_steps<<endl;
 
     for (unsigned i = 0; i < order; i++) 
         delete[] Y[i];
