@@ -659,9 +659,10 @@ const bool variable_tstep){
 void SBDF_Solver::Const_dt_SBDF_Integrate(const double t0, const double tf,
     const double h, double** Y_, double* Y1)  {        
     //***************************************************
-    const double EPSTOL=1.5e-14;
+    const double EPSTOL=1.5e-12;
     const int neqn = IVP->get_num_ODEs();
-    // Initialize intermediate stage vectors Y
+
+    // Initialize previous step vectors Y[0],..., Y[order-1]
     double *Y[order];
     for (unsigned i = 0; i < order; i++) {
         Y[i] = new double[neqn];
@@ -670,10 +671,12 @@ void SBDF_Solver::Const_dt_SBDF_Integrate(const double t0, const double tf,
        
     double t = t0;  
     const int idx=order-1;
-    //int Num_steps = (int)((tf - t0) / h)-idx;
     t = t + idx * h;
+    // Set h_vector for a constant stepsize strategy
     double h_vector[4]={h,h,h,h};
+    // Init sparse matrices
     init_matrices();
+    // Set the constrant stepsize strategy
     bool variable_tstep=false;
     int N_steps=0;
     double h_now=h;
@@ -681,21 +684,26 @@ void SBDF_Solver::Const_dt_SBDF_Integrate(const double t0, const double tf,
     //*********  TIME LOOP  ****************
     while (!end) {
     //**************************************
+      // Compute the distance to the final time tf
       const double distance = tf - t;  
+      // If (distance<h), Use variable stepsize strategy with h=distance
       if (distance<h) {    
         h_now=distance;
         h_vector[idx]=h_now;
-        variable_tstep=true;                                 
+        variable_tstep=true;  
       } 
- 
+      // Perform a new integration step with stepsizes in h_vector
       Time_Step(t, h_vector, Y, Y1, variable_tstep);
-
+      // Update previous step vector Y
       Update_intermediate_vectors(Y, Y1);
+      // Update time t
       t+=h_now;  
+      // Increase the number of time steps
       N_steps++;
+      //Check the end of the time integration
       if (fabs(tf-t)<EPSTOL) {end=true;}
     } // End of time stepping
-
+    // Free memory for the intermediate vectors Y[0],..., Y[order-1] 
     for (unsigned i = 0; i < order; i++) 
         delete[] Y[i];
 }

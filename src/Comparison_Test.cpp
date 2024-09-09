@@ -335,10 +335,10 @@ int main(int argc, char** argv)
     ///////////////////////
 
     /// This part to save some results in txt file
-    ofstream file1("TTime_P_S0_order" + to_string(order) + ".txt", ios_base::app);
-    ofstream file2("Error_P_S0_order" + to_string(order) + ".txt");
-    ofstream file3("TTime_J_S0_order" + to_string(order) + ".txt", ios_base::app);
-    ofstream file4("Error_J_S0_order" + to_string(order) + ".txt");
+    ofstream file1("Time_VAR" + to_string(order) + ".txt", ios_base::app);
+    ofstream file2("Error_VAR" + to_string(order) + ".txt");
+    ofstream file3("Time_CONST" + to_string(order) + ".txt", ios_base::app);
+    ofstream file4("Error_CONST" + to_string(order) + ".txt");
 
 
    
@@ -416,77 +416,86 @@ int main(int argc, char** argv)
     cout << "<<<< SBDF" << order << "...   Time Step h=" << h_imex << " >>>>" << endl;
 
     // Executions of SBDF solvers
-    double error[num_tests], runtime[num_tests];
+    double error[2][num_tests], runtime[2][num_tests];
     int n_steps[num_tests], n_isteps[num_tests];
     double h0 = h_imex;
     time_ns start_SBDF, end_SBDF;
     double tolerance= start_tol;       
-    // Approximation of the intermediate step initial values 
-    // using RK4 and very small stepsize
-    Init_Vectors(order,neqn,  t0, h0,  IVP_list[problem_id], Y_init, Yf_init);   
-    
-    const int splitting_type=1;
+
+    const int splitting_type=0;
     // Init SBDF solver for splitting_type 
     SBDF_Solver * SBDF_IVP=new SBDF_Solver(order, IVP_list[problem_id], splitting_type);
-    
+    const int VAR_SIZE=0, CONST_SIZE=1;
     //******************************************************************************
-    // Perform num_tests x 2 experiments using splitting type=0 and with constant time_step
+    // Perform num_tests x 2 experiments using splitting type=1 and with constant time_step
     //******************************************************************************
     for (int i = 0; i < num_tests; i++){   
     //******************************************************************************
-             const double h_const=pow(tolerance,1.0/order);
+        const double h_const=tolerance;
+        h0=h_const;
 
-            // ADAPTIVE STEPSIZE INTEGRATION 
-            start_SBDF = high_resolution_clock::now();
+        // Approximation of the intermediate step initial values 
+        // using RK4 and very small stepsize
+        Init_Vectors(order,neqn,  t0, h0,  IVP_list[problem_id], Y_init, Yf_init); 
+        
+        // ADAPTIVE STEPSIZE INTEGRATION 
+        start_SBDF = high_resolution_clock::now();  
+    
 
-
-            SBDF_IVP->Adaptive_dt_SBDF_Integrate0(t0, tf, h_const, Y_init, Yf_init, Y1_variable,
-                                          tolerance, &(n_steps[i]), &(n_isteps[i]));
-
-
-            end_SBDF = high_resolution_clock::now();
-
-            runtime[i] = duration_cast<nanoseconds>(end_SBDF - start_SBDF).count() * 1e-9;
-            cblas_daxpy(neqn, -1.0, Y1_RK, 1, Y1_variable, 1);
-            error[i] = cblas_dnrm2(neqn, Y1_variable, 1)/pow(neqn, 0.5);
-            cout << "VARIABLE ...  TOL=  "<<tolerance<<"..... Splitting " <<splitting_type <<"....NSTEPS= "   <<n_steps[i]
-                             <<"......RUNTIME= "<< runtime[i]
-                             <<"......ERROR = " << error[i]<< endl;  
+        SBDF_IVP->Adaptive_dt_SBDF_Integrate0(t0, tf, h0, Y_init, Yf_init, Y1_variable,
+                                          pow(tolerance/2,order), &(n_steps[i]), &(n_isteps[i]));
 
 
+        end_SBDF = high_resolution_clock::now();
 
-            // CONSTANT STEPSIZE INTEGRATION
-           
-            start_SBDF = high_resolution_clock::now();
+        runtime[VAR_SIZE][i] = duration_cast<nanoseconds>(end_SBDF - start_SBDF).count() * 1e-9;
+        cblas_daxpy(neqn, -1.0, Y1_RK, 1, Y1_variable, 1);
+        error[VAR_SIZE][i] = cblas_dnrm2(neqn, Y1_variable, 1)/pow(neqn, 0.5);
 
-            SBDF_IVP->Const_dt_SBDF_Integrate(t0, tf, h_const, Y_init, Y1_constant);
-
-            end_SBDF = high_resolution_clock::now();
-
-            runtime[i] = duration_cast<nanoseconds>(end_SBDF - start_SBDF).count() * 1e-9;
-            cblas_daxpy(neqn, -1.0, Y1_RK, 1, Y1_constant, 1);
-            error[i] = cblas_dnrm2(neqn, Y1_constant, 1)/pow(neqn, 0.5);
-            cout << "CONSTANT...."<< "H=  "<<h_const<<  "                                    CONST_RUNTIME= "<< runtime[i] <<"...CONST_ERROR = " << error[i]<< endl;  
+        cout <<endl<<endl;
+        cout << "VARIABLE ...  TOL=  "<<pow(tolerance,order+1)<<"..... Splitting " <<splitting_type <<"....NSTEPS= "   <<n_steps[i]
+                             <<"......RUNTIME= "<< runtime[VAR_SIZE][i]
+                             <<"......ERROR = " << error[VAR_SIZE][i]<< endl;  
 
 
+        cout<<endl<<endl;
 
- /*           if (j == 0) {
-                file1 << runtime[j][i] << endl;
-                file2 << error[j][i] << endl;
-            }
-            else {
-                file3 << runtime[j][i] << endl;
-                file4 << error[j][i] << endl;
-            }
-        }*/
-        tolerance=tolerance/10;
+        file1 << runtime[VAR_SIZE][i] << endl;
+        file2 << error[VAR_SIZE][i] << endl;
+            
+
+
+        // CONSTANT STEPSIZE INTEGRATION
+
+        //Init_Vectors(order,neqn,  t0, h0,  IVP_list[problem_id], Y_init, Yf_init);   
+    
+        start_SBDF = high_resolution_clock::now();
+
+        SBDF_IVP->Const_dt_SBDF_Integrate(t0, tf, h_const, Y_init, Y1_constant);
+
+        end_SBDF = high_resolution_clock::now();
+
+        runtime[CONST_SIZE][i] = duration_cast<nanoseconds>(end_SBDF - start_SBDF).count() * 1e-9;
+        cblas_daxpy(neqn, -1.0, Y1_RK, 1, Y1_constant, 1);
+        error[CONST_SIZE][i] = cblas_dnrm2(neqn, Y1_constant, 1)/pow(neqn, 0.5);
+        cout << "CONSTANT...."<< "H=  "<<h_const
+              <<  "                                    CONST_RUNTIME= "<< runtime[CONST_SIZE][i] 
+              <<"...CONST_ERROR = " << error[CONST_SIZE][i]<< endl;  
+
+        if (i>0) cout << "ERROR["<< i-1<<"]/ERROR["<<i<<"]= "<<error[CONST_SIZE][i-1]/error[CONST_SIZE][i]<< endl;  
+
+        file3 << runtime[CONST_SIZE][i] << endl;
+        file4 << error[CONST_SIZE][i] << endl;
+          
+        
+        tolerance=tolerance/2.0;
       
     }
     file1.close();
     file2.close();
     file3.close();
     file4.close();
-    cout << endl << endl;
+    /*cout << endl << endl;
     cout << IVP_list[problem_id]->get_name()<<" with Neqn = "
              <<neqn<<"......VSSSBDF"<<order<<" .....  ";
     for (int j = 0; j < num_args; j++){
@@ -500,7 +509,7 @@ int main(int argc, char** argv)
                  << setw(4)<< error[i];
         cout <<"..TIME= "<<  setw(4)<<runtime[i];   
     }
-    cout<<endl;
+    cout<<endl;*/
 
     // Free vectors in dynamic memory	
     Free_vectors(order, Y_init, Yf_init,Y1_RK,Y1_variable);
