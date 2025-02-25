@@ -6,7 +6,7 @@ The IVP-ODE  is given by:
 
 dy/dt=F(t,y(t)) = f1(t,y(t)) + f2(t,y(t)) ,   y(t_0)=y_0,
 
-being f1(t,y(t)) is the nonstiff component in F(t,y(t)) and f2(t,y(t)) is the stiff component.
+being f1(t,y(t)) the nonstiff term in F(t,y(t)) and f2(t,y(t)) is the stiff term.
 
 ### Two different types of splitting
 The package allows two different types of additive splitting (to separate the stiff component and the nonstiff component in F(t,y(t)) ) to be used:
@@ -15,15 +15,14 @@ a) **Physical splitting**: It is the usual splitting, where the terms are split 
 
 
 b) **Jacobian Splitting**:  It reflects the numerical properties of the solution. The splitting has not to be provided by the user because it is performed implicitly by the solver.
-A splitting Jacobian of a ODE system is written as:     dy/dt= f1(t,y(t)) + f2(t,y(t)) = [J_F*y(t)]  +  [F(t,y(t))-F_F*y(t)]
-
+A splitting Jacobian of an ODE system is written as:     dy/dt= f1(t,y(t)) + f2(t,y(t)) = [J_F * y(t)]  +  [F(t,y(t)) - J_F*y(t)]
 
 
 ## Installation
 
 Before compiling and link the software, you need to install the libraries LIS (https://www.ssisc.org/lis/index.en.html), and openblas (https://www.openblas.net/).
 
-It is necessary to edit Makefile to indicate the path where the LIS library is installed by setting the variable LISROOT which is set by default to "usr/local".
+It is necessary to edit "Makefile" to indicate the path where the LIS library is installed by setting the variable LISROOT which is set by default to "usr/local".
 
 Once the Makefile has been modified, you have to compile and link by issuing:
 
@@ -33,9 +32,9 @@ This will generate the executable file "IVP_Solver".
 
 ## Usage
 
-To execute the program, you have to issue the executable file with the following  arguments:
+To execute the program, you have to issue the executable file with the following arguments:
 
-./IVP_Solver <problem id.> <conv. order> <num. grid points (N))>  <tf(final time)> <RK stepsize> <init. SBDF stepsize>  <Num. experiments> <init_tolerance>
+./IVP_Solver <problem id.> <convergence_order> <number_of_ grid_points (N))>  <tf(final time)> <stepsize for RK> <initial SBDF stepsize>  <Num. experiments> <init_tolerance>
 
 problem.id= 0: 1D Advection-Diffusion
 problem.id= 1: Combustion
