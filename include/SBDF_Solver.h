@@ -88,7 +88,7 @@ private:
   //**************************************************************************
   // Compute the variable term (in a time step) of Right Hand Side at each Newton Iteration
   //**************************************************************************
-  void  compute_RHS_SBDF(const double t, const double h, const double* R0, double* Y1,double* R);
+  void  compute_RHS_SBDF(const double t, const double h, const double* R0, double* Y1,double* RHS);
 
   //**************************************************************
   // Check important errors between sparse matrices A1 and A2

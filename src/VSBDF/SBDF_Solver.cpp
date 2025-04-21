@@ -148,20 +148,21 @@ void SBDF_Solver::compare_matrix_csr(LIS_MATRIX A1, LIS_MATRIX A2)
 ///**************************************************************************
 // Compute the variable term (in a time step) of Right Hand Side at each Newton Iteration
 //**************************************************************************
-void  SBDF_Solver::compute_RHS_SBDF(const double t, const double h, const double* R0, double* Y1, double * R){ 
+void  SBDF_Solver::compute_RHS_SBDF(const double t, const double h, const double* R0, double* Y1, double * RHS){ 
   double* DY = new double[neqn];
-  //R=Y1-R0 
-  cblas_dcopy(neqn, Y1, 1, R, 1);
-  cblas_daxpy(neqn, -1.0, R0, 1, R, 1);
+  //RHS=Y1-R0 
+  cblas_dcopy(neqn, Y1, 1, RHS, 1);
+  cblas_daxpy(neqn, -1.0, R0, 1, RHS, 1);
 
   if (splitting_type==0) 
      IVP->G(t + h, Y1, DY);
   else 
      IVP->Jacobian_based_G(t+h, Y1, DY, Jf);     
 
-  cblas_daxpy(neqn, -coef_G[idx]*h, DY, 1, R, 1);
+  cblas_daxpy(neqn, -coef_G[idx]*h, DY, 1, RHS, 1);
   delete[] DY;
 }
+
 
 
 //**************************************************************************
